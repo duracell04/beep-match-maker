@@ -28,11 +28,13 @@ const Scan = () => {
     }
 
     return () => {
-      if (scannerRef.current) {
-        scannerRef.current.stop().catch(console.error);
+      if (scannerRef.current && scanning) {
+        scannerRef.current.stop().catch(() => {
+          // Ignore stop errors during cleanup
+        });
       }
     };
-  }, [eventCode, answers, navigate]);
+  }, [eventCode, answers, navigate, scanning]);
 
   const startScanning = async () => {
     if (!qrReaderRef.current) return;
@@ -51,7 +53,10 @@ const Scan = () => {
         async (decodedText) => {
           setLoading(true);
           try {
-            await scanner.stop();
+            // Stop scanner before processing
+            if (scanner.isScanning) {
+              await scanner.stop();
+            }
             const otherUserAnswers = await getSessionByToken(decodedText);
 
             if (!otherUserAnswers) {
@@ -105,10 +110,14 @@ const Scan = () => {
   };
 
   const stopScanning = () => {
-    if (scannerRef.current) {
+    if (scannerRef.current && scanning) {
       scannerRef.current.stop().then(() => {
         setScanning(false);
-      }).catch(console.error);
+      }).catch((err) => {
+        // If already stopped, just update state
+        console.log('Scanner stop error:', err);
+        setScanning(false);
+      });
     }
   };
 
