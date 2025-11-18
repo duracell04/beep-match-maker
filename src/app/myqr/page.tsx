@@ -1,5 +1,8 @@
+'use client';
+
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Zap, ShieldCheck, RefreshCw } from 'lucide-react';
 import { useEvent } from '@/contexts/EventContext';
 import { useQuiz } from '@/contexts/QuizContext';
@@ -9,18 +12,23 @@ import QRCode from 'qrcode';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
-const MyQR = () => {
-  const { eventCode } = useEvent();
-  const { answers, isComplete } = useQuiz();
-  const navigate = useNavigate();
+const MyQRPage = () => {
+  const { eventCode, isReady: isEventReady } = useEvent();
+  const { answers, isComplete, isReady: isQuizReady } = useQuiz();
+  const router = useRouter();
   const { toast } = useToast();
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [currentToken, setCurrentToken] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (isEventReady && (!eventCode || !isComplete || !answers)) {
+      router.replace('/onboarding');
+    }
+  }, [eventCode, isComplete, answers, isEventReady, router]);
+
+  useEffect(() => {
     if (!eventCode || !isComplete || !answers) {
-      navigate('/');
       return;
     }
 
@@ -50,18 +58,20 @@ const MyQR = () => {
     };
 
     generateQR();
-
-    // Rotate QR every 90 seconds
     const interval = setInterval(generateQR, 90000);
     return () => clearInterval(interval);
-  }, [eventCode, isComplete, answers, navigate, toast]);
+  }, [eventCode, isComplete, answers, toast]);
 
-  if (loading) {
+  if (!isEventReady || !isQuizReady || loading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
       </div>
     );
+  }
+
+  if (!eventCode || !answers) {
+    return null;
   }
 
   return (
@@ -78,9 +88,12 @@ const MyQR = () => {
                 <div className="flex flex-1 items-center justify-center">
                   <div className="rounded-[24px] bg-white/90 p-6 shadow-2xl">
                     {qrDataUrl && (
-                      <img
+                      <Image
                         src={qrDataUrl}
                         alt="Your QR Code"
+                        width={320}
+                        height={320}
+                        unoptimized
                         className="w-full max-w-xs"
                       />
                     )}
@@ -95,7 +108,7 @@ const MyQR = () => {
                   Break the Ice · One Beep at a Time
                 </p>
                 <Button
-                  onClick={() => navigate('/scan')}
+                  onClick={() => router.push('/scan')}
                   className="h-24 w-full rounded-[24px] bg-gradient-to-r from-fuchsia-600 via-pink-500 to-orange-500 text-2xl font-black uppercase tracking-[0.3em] text-white shadow-[0_15px_45px_rgba(255,0,150,0.35)] transition hover:scale-[1.01]"
                 >
                   BEEP SOMEONE
@@ -125,14 +138,14 @@ const MyQR = () => {
           <Button
             variant="outline"
             className="border-white/40 bg-white/10 text-white hover:bg-white/20"
-            onClick={() => navigate('/admin')}
+            onClick={() => router.push('/admin')}
           >
             Admin
           </Button>
           <Button
             variant="outline"
             className="border-white/40 bg-white/10 text-white hover:bg-white/20"
-            onClick={() => navigate('/scan')}
+            onClick={() => router.push('/scan')}
           >
             Scan someone
           </Button>
@@ -142,4 +155,4 @@ const MyQR = () => {
   );
 };
 
-export default MyQR;
+export default MyQRPage;

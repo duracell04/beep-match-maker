@@ -103,6 +103,7 @@ export function calculateMatch(user1: QuizAnswers, user2: QuizAnswers): MatchRes
   // Layer B: Preference satisfaction (bidirectional)
   const user1PrefsResult = calculateLayerB(user1, user2);
   const user2PrefsResult = calculateLayerB(user2, user1);
+  const conversation = findConversationMoment(user1, user2);
 
   // Deal-breaker fast-fail
   if (user1PrefsResult.dealBreakerHit || user2PrefsResult.dealBreakerHit) {
@@ -110,6 +111,8 @@ export function calculateMatch(user1: QuizAnswers, user2: QuizAnswers): MatchRes
       color: 'red',
       score: 0,
       colorLabel: 'Not Compatible',
+      sharedTrait: conversation.sharedTrait,
+      conversationPrompt: conversation.conversationPrompt,
     };
   }
 
@@ -131,8 +134,6 @@ export function calculateMatch(user1: QuizAnswers, user2: QuizAnswers): MatchRes
     color = 'red';
     colorLabel = 'Low Compatibility';
   }
-
-  const conversation = findConversationMoment(user1, user2);
 
   return {
     color,

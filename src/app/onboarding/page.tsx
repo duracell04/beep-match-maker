@@ -1,5 +1,7 @@
+'use client';
+
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { Clock4, Sparkles, Shield } from 'lucide-react';
 import { useEvent } from '@/contexts/EventContext';
 import { BeepLogo } from '@/components/BeepLogo';
@@ -8,10 +10,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 
-const Onboarding = () => {
+const OnboardingPage = () => {
   const [code, setCode] = useState('');
   const { setEventCode } = useEvent();
-  const navigate = useNavigate();
+  const router = useRouter();
   const { toast } = useToast();
 
   const handleJoin = () => {
@@ -25,7 +27,7 @@ const Onboarding = () => {
     }
 
     setEventCode(code.toUpperCase());
-    navigate('/quiz');
+    router.push('/quiz');
   };
 
   return (
@@ -84,7 +86,7 @@ const Onboarding = () => {
               onChange={(e) => setCode(e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase())}
               className="h-20 text-center text-4xl font-black tracking-[0.6em] text-slate-900 placeholder:text-slate-300"
             />
-            <p className="text-sm text-slate-500 text-center">
+            <p className="text-center text-sm text-slate-500">
               No downloads, no passwords. Just the event code printed on badges or screens.
             </p>
           </div>
@@ -106,4 +108,4 @@ const Onboarding = () => {
   );
 };
 
-export default Onboarding;
+export default OnboardingPage;

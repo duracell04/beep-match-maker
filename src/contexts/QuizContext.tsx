@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+'use client';
+
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { QuizAnswers, LayerBAnswer } from '@/data/questions';
 
 interface QuizContextType {
@@ -7,25 +9,32 @@ interface QuizContextType {
   updateLayerB: (answer: LayerBAnswer) => void;
   clearAnswers: () => void;
   isComplete: boolean;
+  isReady: boolean;
 }
 
 const QuizContext = createContext<QuizContextType | undefined>(undefined);
 
 export const QuizProvider = ({ children }: { children: ReactNode }) => {
-  const [answers, setAnswers] = useState<QuizAnswers | null>(() => {
-    const saved = localStorage.getItem('beep_quiz_answers');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [answers, setAnswers] = useState<QuizAnswers | null>(null);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem('beep_quiz_answers');
+    if (saved) {
+      setAnswers(JSON.parse(saved));
+    }
+    setIsReady(true);
+  }, []);
 
   useEffect(() => {
     if (answers) {
-      localStorage.setItem('beep_quiz_answers', JSON.stringify(answers));
+      window.localStorage.setItem('beep_quiz_answers', JSON.stringify(answers));
     }
   }, [answers]);
 
   const updateLayerA = (questionId: string, value: string) => {
-    setAnswers(prev => {
-      const eventCode = localStorage.getItem('beep_event_code') || '';
+    setAnswers((prev) => {
+      const eventCode = window.localStorage.getItem('beep_event_code') || '';
       return {
         layerA: { ...(prev?.layerA || {}), [questionId]: value },
         layerB: prev?.layerB || [],
@@ -35,9 +44,9 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateLayerB = (answer: LayerBAnswer) => {
-    setAnswers(prev => {
+    setAnswers((prev) => {
       if (!prev) return prev;
-      const existingIndex = prev.layerB.findIndex(a => a.questionId === answer.questionId);
+      const existingIndex = prev.layerB.findIndex((a) => a.questionId === answer.questionId);
       const newLayerB = [...prev.layerB];
       if (existingIndex >= 0) {
         newLayerB[existingIndex] = answer;
@@ -49,18 +58,18 @@ export const QuizProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const clearAnswers = () => {
-    localStorage.removeItem('beep_quiz_answers');
+    window.localStorage.removeItem('beep_quiz_answers');
     setAnswers(null);
   };
 
   const isComplete = !!(
     answers &&
-    Object.keys(answers.layerA).length === 4 &&
+    Object.keys(answers.layerA).length === 5 &&
     answers.layerB.length === 5
   );
 
   return (
-    <QuizContext.Provider value={{ answers, updateLayerA, updateLayerB, clearAnswers, isComplete }}>
+    <QuizContext.Provider value={{ answers, updateLayerA, updateLayerB, clearAnswers, isComplete, isReady }}>
       {children}
     </QuizContext.Provider>
   );

@@ -1,5 +1,7 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Sparkles } from 'lucide-react';
 import { useEvent } from '@/contexts/EventContext';
 import { useQuiz } from '@/contexts/QuizContext';
@@ -13,23 +15,35 @@ import { BeepLogo } from '@/components/BeepLogo';
 
 const questionDeck = [...layerAQuestions, ...layerBQuestions];
 
-const Quiz = () => {
-  const { eventCode } = useEvent();
-  const { answers, updateLayerA, updateLayerB } = useQuiz();
-  const navigate = useNavigate();
+const QuizPage = () => {
+  const { eventCode, isReady: isEventReady } = useEvent();
+  const { answers, updateLayerA, updateLayerB, isReady: isQuizReady } = useQuiz();
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
-  const [layerAAnswers, setLayerAAnswers] = useState<Record<string, string>>(answers?.layerA || {});
-  const [layerBAnswers, setLayerBAnswers] = useState<Record<string, { value: string; importance: ImportanceLevel; dealBreaker: boolean }>>(
-    answers?.layerB.reduce((acc, ans) => ({
-      ...acc,
-      [ans.questionId]: { value: ans.value, importance: ans.importance, dealBreaker: ans.dealBreaker }
-    }), {}) || {}
-  );
+  const [layerAAnswers, setLayerAAnswers] = useState<Record<string, string>>({});
+  const [layerBAnswers, setLayerBAnswers] = useState<Record<string, { value: string; importance: ImportanceLevel; dealBreaker: boolean }>>({});
 
-  if (!eventCode) {
-    navigate('/');
-    return null;
-  }
+  useEffect(() => {
+    if (answers?.layerA) {
+      setLayerAAnswers(answers.layerA);
+    }
+    if (answers?.layerB) {
+      const formatted = answers.layerB.reduce(
+        (acc, ans) => ({
+          ...acc,
+          [ans.questionId]: { value: ans.value, importance: ans.importance, dealBreaker: ans.dealBreaker },
+        }),
+        {},
+      );
+      setLayerBAnswers(formatted);
+    }
+  }, [answers]);
+
+  useEffect(() => {
+    if (isEventReady && !eventCode) {
+      router.replace('/onboarding');
+    }
+  }, [isEventReady, eventCode, router]);
 
   const totalSteps = questionDeck.length;
   const progress = ((currentStep + 1) / totalSteps) * 100;
@@ -56,9 +70,9 @@ const Quiz = () => {
     }
 
     if (currentStep < totalSteps - 1) {
-      setCurrentStep(currentStep + 1);
+      setCurrentStep((prev) => prev + 1);
     } else {
-      navigate('/myqr');
+      router.push('/myqr');
     }
   };
 
@@ -76,6 +90,18 @@ const Quiz = () => {
       });
     }
   };
+
+  if (!isEventReady || !isQuizReady) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
+        Loading your experience...
+      </div>
+    );
+  }
+
+  if (!eventCode) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 px-4 py-10 text-white">
@@ -98,7 +124,9 @@ const Quiz = () => {
           <div className="rounded-[32px] border border-white/10 bg-white/5 p-6 md:p-10 backdrop-blur">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <p className="text-sm uppercase tracking-[0.4em] text-white/60">Card {String(currentStep + 1).padStart(2, '0')} / {totalSteps}</p>
+                <p className="text-sm uppercase tracking-[0.4em] text-white/60">
+                  Card {String(currentStep + 1).padStart(2, '0')} / {totalSteps}
+                </p>
                 <h2 className="mt-2 text-2xl font-semibold">{isLayerA ? 'Signal who they are' : 'Tune what they want'}</h2>
               </div>
               <div className="flex items-center gap-2 text-sm text-white/70">
@@ -211,7 +239,7 @@ const Quiz = () => {
               {currentStep > 0 && (
                 <Button
                   variant="outline"
-                  onClick={() => setCurrentStep(currentStep - 1)}
+                  onClick={() => setCurrentStep((prev) => prev - 1)}
                   className="h-12 min-w-[120px] border-white/40 text-white"
                 >
                   Back
@@ -220,7 +248,7 @@ const Quiz = () => {
               <Button
                 onClick={handleNext}
                 disabled={!canProceed}
-                className="h-12 flex-1 min-w-[200px] text-base font-semibold uppercase tracking-widest"
+                className="h-12 min-w-[200px] flex-1 text-base font-semibold uppercase tracking-widest"
               >
                 {currentStep < totalSteps - 1 ? 'Next Card' : 'Lock My Answers'}
               </Button>
@@ -250,4 +278,4 @@ const Quiz = () => {
   );
 };
 
-export default Quiz;
+export default QuizPage;

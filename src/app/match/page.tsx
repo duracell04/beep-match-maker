@@ -1,15 +1,22 @@
-import { useLocation, useNavigate } from 'react-router-dom';
-import { MatchResult as MatchResultComponent } from '@/components/MatchResult';
-import { Button } from '@/components/ui/button';
-import { MatchResult } from '@/lib/matcher';
+'use client';
 
-const Match = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const result = location.state as MatchResult;
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { MatchResult as MatchResultComponent } from '@/components/MatchResult';
+import { useMatchResult } from '@/contexts/MatchContext';
+
+const MatchPage = () => {
+  const { result } = useMatchResult();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!result) {
+      router.replace('/scan');
+    }
+  }, [result, router]);
 
   if (!result) {
-    navigate('/');
     return null;
   }
 
@@ -25,7 +32,7 @@ const Match = () => {
         />
         <div className="grid gap-3 md:grid-cols-2">
           <Button
-            onClick={() => navigate('/scan')}
+            onClick={() => router.push('/scan')}
             className="h-16 text-lg font-semibold tracking-wide"
             size="lg"
           >
@@ -33,7 +40,7 @@ const Match = () => {
           </Button>
           <Button
             variant="outline"
-            onClick={() => navigate('/myqr')}
+            onClick={() => router.push('/myqr')}
             className="h-16 text-lg font-semibold tracking-wide bg-white/10 text-white border-white/40 hover:bg-white/20"
           >
             Back to My QR
@@ -44,4 +51,4 @@ const Match = () => {
   );
 };
 
-export default Match;
+export default MatchPage;

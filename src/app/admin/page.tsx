@@ -1,5 +1,7 @@
+'use client';
+
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { useEvent } from '@/contexts/EventContext';
 import { BeepLogo } from '@/components/BeepLogo';
 import { Button } from '@/components/ui/button';
@@ -9,17 +11,18 @@ import { getEventStats } from '@/lib/session';
 import { Users, Activity } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 
-const Admin = () => {
-  const { eventCode, clearEvent } = useEvent();
-  const navigate = useNavigate();
+const AdminPage = () => {
+  const { eventCode, clearEvent, isReady: isEventReady } = useEvent();
+  const router = useRouter();
   const [stats, setStats] = useState<{ participantCount: number; participants: any[] } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!eventCode) {
-      navigate('/');
+    if (isEventReady && !eventCode) {
+      router.replace('/onboarding');
       return;
     }
+    if (!eventCode) return;
 
     const fetchStats = async () => {
       try {
@@ -35,14 +38,14 @@ const Admin = () => {
     fetchStats();
     const interval = setInterval(fetchStats, 5000);
     return () => clearInterval(interval);
-  }, [eventCode, navigate]);
+  }, [eventCode, isEventReady, router]);
 
   const handleLeaveEvent = () => {
     clearEvent();
-    navigate('/');
+    router.replace('/onboarding');
   };
 
-  if (loading) {
+  if (!isEventReady || !eventCode || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
@@ -134,7 +137,7 @@ const Admin = () => {
         <div className="flex gap-3">
           <Button
             variant="outline"
-            onClick={() => navigate('/myqr')}
+            onClick={() => router.push('/myqr')}
             className="flex-1"
           >
             Back to My Code
@@ -151,4 +154,4 @@ const Admin = () => {
   );
 };
 
-export default Admin;
+export default AdminPage;

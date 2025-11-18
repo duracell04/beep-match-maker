@@ -1,31 +1,41 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+'use client';
+
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
 interface EventContextType {
   eventCode: string | null;
   setEventCode: (code: string) => void;
   clearEvent: () => void;
+  isReady: boolean;
 }
 
 const EventContext = createContext<EventContextType | undefined>(undefined);
 
 export const EventProvider = ({ children }: { children: ReactNode }) => {
-  const [eventCode, setEventCodeState] = useState<string | null>(() => {
-    return localStorage.getItem('beep_event_code');
-  });
+  const [eventCode, setEventCodeState] = useState<string | null>(null);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem('beep_event_code');
+    if (stored) {
+      setEventCodeState(stored);
+    }
+    setIsReady(true);
+  }, []);
 
   const setEventCode = (code: string) => {
-    localStorage.setItem('beep_event_code', code);
+    window.localStorage.setItem('beep_event_code', code);
     setEventCodeState(code);
   };
 
   const clearEvent = () => {
-    localStorage.removeItem('beep_event_code');
-    localStorage.removeItem('beep_quiz_answers');
+    window.localStorage.removeItem('beep_event_code');
+    window.localStorage.removeItem('beep_quiz_answers');
     setEventCodeState(null);
   };
 
   return (
-    <EventContext.Provider value={{ eventCode, setEventCode, clearEvent }}>
+    <EventContext.Provider value={{ eventCode, setEventCode, clearEvent, isReady }}>
       {children}
     </EventContext.Provider>
   );
