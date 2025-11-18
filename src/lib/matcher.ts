@@ -1,4 +1,4 @@
-import { QuizAnswers, layerAQuestions, ImportanceLevel } from '@/data/questions';
+import { QuizAnswers, layerAQuestions, layerBQuestions, ImportanceLevel, Question } from '@/data/questions';
 
 export type MatchColor = 'green' | 'yellow' | 'red';
 
@@ -6,6 +6,8 @@ export interface MatchResult {
   color: MatchColor;
   score: number;
   colorLabel: string;
+  sharedTrait: string;
+  conversationPrompt: string;
 }
 
 const importanceWeights: Record<ImportanceLevel, number> = {
@@ -63,6 +65,34 @@ function calculateLayerB(user1: QuizAnswers, user2: QuizAnswers): { score: numbe
   return { score, dealBreakerHit };
 }
 
+function getLayerBValue(user: QuizAnswers, questionId: string) {
+  return user.layerB.find((answer) => answer.questionId === questionId)?.value;
+}
+
+function findConversationMoment(user1: QuizAnswers, user2: QuizAnswers) {
+  const allQuestions: Question[] = [...layerAQuestions, ...layerBQuestions];
+
+  for (const question of allQuestions) {
+    const value1 = question.layer === 'A' ? user1.layerA[question.id] : getLayerBValue(user1, question.id);
+    const value2 = question.layer === 'A' ? user2.layerA[question.id] : getLayerBValue(user2, question.id);
+
+    if (value1 && value1 === value2) {
+      const matchingOption = question.options.find((option) => option.value === value1);
+      if (matchingOption) {
+        return {
+          sharedTrait: matchingOption.conversationHook || `You both chose "${matchingOption.label}".`,
+          conversationPrompt: matchingOption.conversationPrompt || 'Ask them how that shows up in their work week.',
+        };
+      }
+    }
+  }
+
+  return {
+    sharedTrait: 'You both leaned into the same signal.',
+    conversationPrompt: 'Ask what made that answer a must-have for their team.',
+  };
+}
+
 /**
  * Main matching function following v0.9 spec
  */
@@ -102,9 +132,13 @@ export function calculateMatch(user1: QuizAnswers, user2: QuizAnswers): MatchRes
     colorLabel = 'Low Compatibility';
   }
 
+  const conversation = findConversationMoment(user1, user2);
+
   return {
     color,
     score: Math.round(compositeScore * 100),
     colorLabel,
+    sharedTrait: conversation.sharedTrait,
+    conversationPrompt: conversation.conversationPrompt,
   };
 }
